@@ -1,4 +1,11 @@
 nit 123 90000
-cust1 456 8000
-ankur 567 55000
+cust1 123 3000
+ankur 1234 12000
 bhi 123 6000
+                
+nikhil 1234 5000
+ashutosh 1234 8000
+shivam 123 17000
+ashu 123 90000
+aniket 123 13000
+nitish 9876 89000

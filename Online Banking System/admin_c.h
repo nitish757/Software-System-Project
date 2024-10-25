@@ -4,7 +4,8 @@
 
 #define BUFFER_SIZE 1024
 
-void admin_menu(){
+void admin_menu()
+{
     printf("\n\n------------Admin Module:--------------\n");
     printf("1. Add New Bank Employee\n");
     printf("2. Modify Customer/Employee Details\n");
@@ -14,8 +15,9 @@ void admin_menu(){
     printf("6. Exit\n\n");
 }
 
-void add_employee(int socket){
-    char username[50],password[50], response[50];
+void add_employee(int socket)
+{
+    char username[50], password[50], response[50];
 
     printf("\nEnter username of new employee:");
     scanf("%s", username);
@@ -29,15 +31,17 @@ void add_employee(int socket){
     printf("\n%s", response);
 }
 
-void modify_employee(int socket){
-    char username[50],password[50], response[50];
+void modify_employee(int socket)
+{
+    char username[50], password[50], response[50];
     int salary, choice;
 
     printf("\nEnter 0 for customer and 1 for Employee:");
     scanf("%d", &choice);
     send(socket, &choice, sizeof(choice), 0);
 
-    if(choice){
+    if (choice)
+    {
         printf("\nEnter username of employee:");
         scanf("%s", username);
         send(socket, username, sizeof(username), 0);
@@ -50,7 +54,8 @@ void modify_employee(int socket){
         scanf("%d", &salary);
         send(socket, &salary, sizeof(salary), 0);
     }
-    else{
+    else
+    {
         printf("\nEnter username of customer:");
         scanf("%s", username);
         send(socket, username, sizeof(username), 0);
@@ -67,26 +72,46 @@ void modify_employee(int socket){
     printf("\n%s", response);
 }
 
-void admin_module(int socket){
-    int op_choice;
+void change_admin_password(int socket)
+{
+    char new_password[50], response[50];
 
-    admin_menu();
+    printf("\nEnter new password:");
+    scanf("%s", new_password);
 
-    printf("Enter your choice of Operation:");
-    scanf("%d", &op_choice);
-    
-    send(socket, &op_choice, sizeof(op_choice), 0);
+    send(socket, new_password, sizeof(new_password), 0);
 
-    switch(op_choice){
+    read(socket, response, sizeof(response));
+    printf("\n%s", response);
+}
+
+void admin_module(int socket)
+{
+    while (1){
+        int op_choice;
+
+        admin_menu();
+
+        printf("Enter your choice of Operation:");
+        scanf("%d", &op_choice);
+
+        send(socket, &op_choice, sizeof(op_choice), 0);
+
+        switch (op_choice){
         case 1:
             add_employee(socket);
             break;
         case 2:
             modify_employee(socket);
             break;
-        // case 6:
-        //     change_emp_password(socket);
-        //     break;
+        case 4:
+            change_admin_password(socket);
+            break;
+        case 5:
+            return;
+        case 6:
+            return;
+        }
     }
 }
 #endif

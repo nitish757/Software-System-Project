@@ -4,16 +4,21 @@
 
 #define BUFFER_SIZE 1024
 
-void view_balance(int socket, struct Customer *customer) {
+void view_balance(int socket, struct Customer *customer)
+{
     // Send the balance to the client
-    if (send(socket, &customer->balance, sizeof(customer->balance), 0) < 0) {
+    if (send(socket, &customer->balance, sizeof(customer->balance), 0) < 0)
+    {
         perror("Failed to send balance");
-    } else {
-        printf("Sent balance of %d to user %s\n", customer->balance, customer->username);
+    }
+    else
+    {
+        printf("Balanced of %s has been sent", customer->username);
     }
 }
 
-void deposit_money(int client_socket, struct Customer *customer) {
+void deposit_money(int client_socket, struct Customer *customer)
+{
     char line[BUFFER_SIZE];
     int deposit, found = 0;
 
@@ -22,7 +27,8 @@ void deposit_money(int client_socket, struct Customer *customer) {
 
     // Open the file for reading and writing
     int file = open("customer.txt", O_RDWR);
-    if (file < 0) {
+    if (file < 0)
+    {
         perror("Failed to open customer file");
         send(client_socket, "Error opening file\n", 20, 0);
         return;
@@ -30,19 +36,21 @@ void deposit_money(int client_socket, struct Customer *customer) {
 
     struct flock lock;
     memset(&lock, 0, sizeof(lock));
-    lock.l_type = F_WRLCK;  // Write lock
+    lock.l_type = F_WRLCK; // Write lock
     lock.l_whence = SEEK_SET;
 
     off_t line_start = 0;
     ssize_t bytes_read;
     // Process the file line by line
-    while ((bytes_read = read(file, line, sizeof(line) - 1)) > 0) {
+    while ((bytes_read = read(file, line, sizeof(line) - 1)) > 0)
+    {
         // Null-terminate the string
-        line[bytes_read] = '\0'; 
+        line[bytes_read] = '\0';
 
         // Find the position of the newline character
         char *newline_pos = strchr(line, '\n');
-        if (newline_pos) {
+        if (newline_pos)
+        {
             // Calculate the actual length of the line
             ssize_t line_length = newline_pos - line + 1;
             line_start = lseek(file, -bytes_read, SEEK_CUR);
@@ -55,12 +63,14 @@ void deposit_money(int client_socket, struct Customer *customer) {
             int items = sscanf(line, "%49s %49s %d", stored_username, stored_password, &stored_balance);
 
             // Check if the username matches
-            if (items == 3 && strcmp(stored_username, customer->username) == 0) {
+            if (items == 3 && strcmp(stored_username, customer->username) == 0)
+            {
                 // Set the lock to cover this line
                 lock.l_start = line_start;
                 lock.l_len = line_length;
 
-                if (fcntl(file, F_SETLKW, &lock) == -1) {
+                if (fcntl(file, F_SETLKW, &lock) == -1)
+                {
                     perror("Failed to lock record");
                     close(file);
                     return;
@@ -86,20 +96,24 @@ void deposit_money(int client_socket, struct Customer *customer) {
 
             // Move to the next line after the newline character
             lseek(file, line_start + line_length, SEEK_SET);
-        } else {
+        }
+        else
+        {
             // Move file pointer forward if no newline character is found
             lseek(file, line_start + bytes_read, SEEK_SET);
         }
     }
 
-    if (!found) {
+    if (!found)
+    {
         send(client_socket, "User not found\n", 16, 0);
     }
 
     close(file);
 }
 
-void withdraw_money(int client_socket, struct Customer *customer) {
+void withdraw_money(int client_socket, struct Customer *customer)
+{
     char line[BUFFER_SIZE];
     int withdraw, found = 0;
 
@@ -108,7 +122,8 @@ void withdraw_money(int client_socket, struct Customer *customer) {
 
     // Open the file for reading and writing
     int file = open("customer.txt", O_RDWR);
-    if (file < 0) {
+    if (file < 0)
+    {
         perror("Failed to open customer file");
         send(client_socket, "Error opening file\n", 20, 0);
         return;
@@ -116,20 +131,22 @@ void withdraw_money(int client_socket, struct Customer *customer) {
 
     struct flock lock;
     memset(&lock, 0, sizeof(lock));
-    lock.l_type = F_WRLCK;  // Write lock
+    lock.l_type = F_WRLCK; // Write lock
     lock.l_whence = SEEK_SET;
 
     off_t line_start = 0;
     ssize_t bytes_read;
 
     // Process the file line by line
-    while ((bytes_read = read(file, line, sizeof(line) - 1)) > 0) {
+    while ((bytes_read = read(file, line, sizeof(line) - 1)) > 0)
+    {
         // Null-terminate the string
-        line[bytes_read] = '\0'; 
+        line[bytes_read] = '\0';
 
         // Find the position of the newline character
         char *newline_pos = strchr(line, '\n');
-        if (newline_pos) {
+        if (newline_pos)
+        {
             // Calculate the actual length of the line
             ssize_t line_length = newline_pos - line + 1;
             line_start = lseek(file, -bytes_read, SEEK_CUR);
@@ -142,14 +159,17 @@ void withdraw_money(int client_socket, struct Customer *customer) {
             int items = sscanf(line, "%49s %49s %d", stored_username, stored_password, &stored_balance);
 
             // Check if the username matches
-            if (items == 3 && strcmp(stored_username, customer->username) == 0) {
+            if (items == 3 && strcmp(stored_username, customer->username) == 0)
+            {
                 // Check if sufficient balance is available
-                if (stored_balance >= withdraw) {
+                if (stored_balance >= withdraw)
+                {
                     // Set the lock to cover this line
                     lock.l_start = line_start;
                     lock.l_len = line_length;
 
-                    if (fcntl(file, F_SETLKW, &lock) == -1) {
+                    if (fcntl(file, F_SETLKW, &lock) == -1)
+                    {
                         perror("Failed to lock record");
                         close(file);
                         return;
@@ -169,7 +189,9 @@ void withdraw_money(int client_socket, struct Customer *customer) {
                     // Update the customer's balance in memory
                     customer->balance = stored_balance;
                     send(client_socket, "Withdrawal successful\n", 22, 0);
-                } else {
+                }
+                else
+                {
                     send(client_socket, "Insufficient funds\n", 20, 0);
                 }
                 found = 1;
@@ -178,20 +200,24 @@ void withdraw_money(int client_socket, struct Customer *customer) {
 
             // Move to the next line after the newline character
             lseek(file, line_start + line_length, SEEK_SET);
-        } else {
+        }
+        else
+        {
             // Move file pointer forward if no newline character is found
             lseek(file, line_start + bytes_read, SEEK_SET);
         }
     }
 
-    if (!found) {
+    if (!found)
+    {
         send(client_socket, "User not found\n", 16, 0);
     }
 
     close(file);
 }
 
-void transfer_funds(int client_socket, struct Customer *sender) {
+void transfer_funds(int client_socket, struct Customer *sender)
+{
     char receiver_username[50];
     int transfer_amount;
 
@@ -205,7 +231,8 @@ void transfer_funds(int client_socket, struct Customer *sender) {
 
     // Open the file for reading and writing
     int file = open("customer.txt", O_RDWR);
-    if (file < 0) {
+    if (file < 0)
+    {
         perror("Failed to open customer file");
         send(client_socket, "Error opening file\n", 20, 0);
         return;
@@ -213,18 +240,20 @@ void transfer_funds(int client_socket, struct Customer *sender) {
 
     struct flock lock;
     memset(&lock, 0, sizeof(lock));
-    lock.l_type = F_WRLCK;  // Write lock
+    lock.l_type = F_WRLCK; // Write lock
 
     // First pass: Find the sender and update their balance
     off_t line_start = 0;
     ssize_t bytes_read;
 
-    while ((bytes_read = read(file, line, sizeof(line) - 1)) > 0) {
+    while ((bytes_read = read(file, line, sizeof(line) - 1)) > 0)
+    {
         line[bytes_read] = '\0'; // Null-terminate the string
 
         // Find the position of the newline character
         char *newline_pos = strchr(line, '\n');
-        if (newline_pos) {
+        if (newline_pos)
+        {
             // Calculate the actual length of the line
             ssize_t line_length = newline_pos - line + 1;
             line_start = lseek(file, -bytes_read, SEEK_CUR); // Save current position
@@ -237,15 +266,18 @@ void transfer_funds(int client_socket, struct Customer *sender) {
             int items = sscanf(line, "%49s %49s %d", stored_username, stored_password, &stored_balance);
 
             // Check if the username matches the sender
-            if (items == 3 && strcmp(stored_username, sender->username) == 0) {
+            if (items == 3 && strcmp(stored_username, sender->username) == 0)
+            {
                 found_sender = 1; // Mark sender as found
                 // Check if sufficient balance is available
-                if (stored_balance >= transfer_amount) {
+                if (stored_balance >= transfer_amount)
+                {
                     // Set the lock to cover this line
                     lock.l_start = line_start;
                     lock.l_len = line_length;
 
-                    if (fcntl(file, F_SETLKW, &lock) == -1) {
+                    if (fcntl(file, F_SETLKW, &lock) == -1)
+                    {
                         perror("Failed to lock sender record");
                         close(file);
                         return;
@@ -264,8 +296,9 @@ void transfer_funds(int client_socket, struct Customer *sender) {
 
                     // Update sender's balance in memory
                     sender->balance = stored_balance;
-
-                } else {
+                }
+                else
+                {
                     send(client_socket, "Insufficient funds\n", 20, 0);
                     close(file);
                     return;
@@ -273,13 +306,16 @@ void transfer_funds(int client_socket, struct Customer *sender) {
             }
             // Move to the next line after the newline character
             lseek(file, line_start + line_length, SEEK_SET);
-        } else {
+        }
+        else
+        {
             lseek(file, line_start + bytes_read, SEEK_SET);
         }
     }
 
     // If sender not found, return
-    if (!found_sender) {
+    if (!found_sender)
+    {
         send(client_socket, "Sender not found\n", 17, 0);
         close(file);
         return;
@@ -288,12 +324,14 @@ void transfer_funds(int client_socket, struct Customer *sender) {
     // Reset file pointer for second pass: Find the receiver and update their balance
     lseek(file, 0, SEEK_SET);
 
-    while ((bytes_read = read(file, line, sizeof(line) - 1)) > 0) {
+    while ((bytes_read = read(file, line, sizeof(line) - 1)) > 0)
+    {
         line[bytes_read] = '\0'; // Null-terminate the string
 
         // Find the position of the newline character
         char *newline_pos = strchr(line, '\n');
-        if (newline_pos) {
+        if (newline_pos)
+        {
             // Calculate the actual length of the line
             ssize_t line_length = newline_pos - line + 1;
             line_start = lseek(file, -bytes_read, SEEK_CUR); // Save current position
@@ -306,14 +344,16 @@ void transfer_funds(int client_socket, struct Customer *sender) {
             int items = sscanf(line, "%49s %49s %d", stored_username, stored_password, &stored_balance);
 
             // Check if the username matches the receiver
-            if (items == 3 && strcmp(stored_username, receiver_username) == 0) {
+            if (items == 3 && strcmp(stored_username, receiver_username) == 0)
+            {
                 found_receiver = 1; // Mark receiver as found
-                
+
                 // Set the lock to cover this line
                 lock.l_start = line_start;
                 lock.l_len = line_length;
 
-                if (fcntl(file, F_SETLKW, &lock) == -1) {
+                if (fcntl(file, F_SETLKW, &lock) == -1)
+                {
                     perror("Failed to lock receiver record");
                     close(file);
                     return;
@@ -332,7 +372,9 @@ void transfer_funds(int client_socket, struct Customer *sender) {
             }
             // Move to the next line after the newline character
             lseek(file, line_start + line_length, SEEK_SET);
-        } else {
+        }
+        else
+        {
             lseek(file, line_start + bytes_read, SEEK_SET);
         }
     }
@@ -341,14 +383,18 @@ void transfer_funds(int client_socket, struct Customer *sender) {
     close(file);
 
     // Notify the client of success or failure
-    if (found_receiver) {
+    if (found_receiver)
+    {
         send(client_socket, "Transfer successful\n", 20, 0);
-    } else {
+    }
+    else
+    {
         send(client_socket, "Receiver not found\n", 20, 0);
     }
 }
 
-void change_password(int client_socket, struct Customer *customer) {
+void change_password(int client_socket, struct Customer *customer)
+{
     char line[BUFFER_SIZE];
     char new_password[50];
     int found = 0;
@@ -358,7 +404,8 @@ void change_password(int client_socket, struct Customer *customer) {
 
     // Open the customer.txt file for reading and writing
     int file = open("customer.txt", O_RDWR);
-    if (file < 0) {
+    if (file < 0)
+    {
         perror("Failed to open customer file");
         send(client_socket, "Error opening file\n", 20, 0);
         return;
@@ -366,20 +413,22 @@ void change_password(int client_socket, struct Customer *customer) {
 
     struct flock lock;
     memset(&lock, 0, sizeof(lock));
-    lock.l_type = F_WRLCK;  // Write lock
+    lock.l_type = F_WRLCK; // Write lock
     lock.l_whence = SEEK_SET;
 
     off_t line_start = 0;
     ssize_t bytes_read;
 
     // Process the file line by line
-    while ((bytes_read = read(file, line, sizeof(line) - 1)) > 0) {
+    while ((bytes_read = read(file, line, sizeof(line) - 1)) > 0)
+    {
         // Null-terminate the string
         line[bytes_read] = '\0';
 
         // Find the position of the newline character
         char *newline_pos = strchr(line, '\n');
-        if (newline_pos) {
+        if (newline_pos)
+        {
             ssize_t line_length = newline_pos - line + 1;
             line_start = lseek(file, -bytes_read, SEEK_CUR);
 
@@ -391,12 +440,14 @@ void change_password(int client_socket, struct Customer *customer) {
             int items = sscanf(line, "%49s %49s %d", stored_username, stored_password, &stored_balance);
 
             // Check if the username matches
-            if (items == 3 && strcmp(stored_username, customer->username) == 0) {
+            if (items == 3 && strcmp(stored_username, customer->username) == 0)
+            {
                 // Set a write lock on the matched line
                 lock.l_start = line_start;
                 lock.l_len = line_length;
 
-                if (fcntl(file, F_SETLKW, &lock) == -1) {
+                if (fcntl(file, F_SETLKW, &lock) == -1)
+                {
                     perror("Failed to lock record");
                     close(file);
                     return;
@@ -423,28 +474,103 @@ void change_password(int client_socket, struct Customer *customer) {
         }
     }
 
-    if (!found) {
+    if (!found)
+    {
         send(client_socket, "User not found\n", 16, 0);
     }
 
     close(file);
 }
 
-void customer_module(int client_socket, struct Customer *customer) {
-    int op_choice;
+void add_feedback(int client_socket, struct Customer *customer)
+{
+    char feedback[BUFFER_SIZE];            // Buffer to store the received feedback
+    char feedback_entry[BUFFER_SIZE + 50]; // Buffer to store the full feedback entry
 
-    if (!authenticate(client_socket, customer, "customer.txt")) {
-        printf("Authentication failed.\n");
-        close(client_socket);
-        exit(1); 
+    // Read feedback from the client
+    int bytes_read = read(client_socket, feedback, sizeof(feedback) - 1);
+    if (bytes_read < 0)
+    {
+        perror("Error reading feedback from client");
+        return;
     }
-    else{
+    feedback[bytes_read] = '\0'; // Null-terminate the feedback string
+
+    // Prepare the feedback entry (username: feedback)
+    strcpy(feedback_entry, customer->username);
+    strcat(feedback_entry, ": ");
+    strcat(feedback_entry, feedback);
+
+    // Open the feedback file for appending
+    int file = open("feedback.txt", O_WRONLY | O_APPEND | O_CREAT, 0644);
+    if (file < 0)
+    {
+        perror("Error opening feedback file");
+        return;
+    }
+
+    // Write the feedback to the file
+    if (write(file, feedback_entry, strlen(feedback_entry)) < 0)
+    {
+        perror("Error writing feedback to file");
+    }
+    else
+    {
+        write(file, "\n", 1); // Add a newline after the feedback entry
+        printf("Feedback received: %s\n", feedback_entry);
+    }
+
+    // Close the file
+    close(file);
+
+    // Send confirmation to the client
+    char confirmation[] = "Feedback added successfully.\n";
+    send(client_socket, confirmation, strlen(confirmation), 0);
+}
+
+void apply_loan(int client_socket, struct Customer *customer)
+{
+    int loan_amount;
+    char loan_details[256];
+    char loan_record[512];
+    int loan_id = generate_loan_id();
+
+    recv(client_socket, &loan_amount, sizeof(loan_amount), 0);
+
+    sprintf(loan_record, "%d %s %d %s\n", loan_id, customer->username, loan_amount, "Pending");
+
+    int file = open("loans.txt", O_WRONLY | O_APPEND | O_CREAT, 0644);
+    if (file >= 0)
+    {
+        write(file, loan_record, strlen(loan_record));
+        close(file);
+    }
+
+    send(client_socket, "Loan application submitted successfully.\n", 40, 0);
+}
+
+void customer_module(int client_socket, struct Customer *customer)
+{
+    //int op_choice;
+
+    if (!authenticate(client_socket, customer, "customer.txt"))
+    {
+        printf("Authentication failed.\n");
+        return; //////////
+        // close(client_socket);
+        // exit(1);
+    }
+    else
+    {
         printf("Authentication Success.\n");
     }
+    while (1)
+    {
+        int op_choice;
+        read(client_socket, &op_choice, sizeof(op_choice));
 
-    read(client_socket, &op_choice, sizeof(op_choice)); 
-
-    switch (op_choice) {
+        switch (op_choice)
+        {
         case 1:
             view_balance(client_socket, customer);
             break;
@@ -457,11 +583,26 @@ void customer_module(int client_socket, struct Customer *customer) {
         case 4:
             transfer_funds(client_socket, customer);
             break;
+        case 5:
+            apply_loan(client_socket, customer);
+            break;
         case 6:
             change_password(client_socket, customer);
             break;
+        case 7:
+            add_feedback(client_socket, customer);
+            break;
+        case 9:
+            return;
+        case 10:
+            // close(client_socket);
+            // break;
+            return;
         default:
-            send(client_socket, "Invalid Choice\n", 15, 0);
+            printf("Invalid Choice!!\n");
+            break;
+            // send(client_socket, "Invalid Choice\n", 15, 0);
+        }
     }
 }
 #endif
